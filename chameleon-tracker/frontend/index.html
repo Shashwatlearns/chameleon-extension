@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chameleon - Browser Fingerprint Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fingerprint-id {
+            font-size: 1.8em;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.collecting {
+            background: rgba(255, 165, 0, 0.3);
+            border: 2px solid rgba(255, 165, 0, 0.5);
+        }
+
+        .status.complete {
+            background: rgba(0, 255, 0, 0.3);
+            border: 2px solid rgba(0, 255, 0, 0.5);
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .detail-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .server-response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .server-response.success {
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid rgba(0, 255, 0, 0.4);
+            display: block;
+        }
+
+        .server-response.error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid rgba(255, 0, 0, 0.4);
+            display: block;
+        }
+
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .canvas-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .canvas-preview canvas {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦎 CHAMELEON</h1>
+        <p style="text-align:center; margin-bottom: 20px;">
+        <h1><a href="dashboard.html" style="color:#93c5fd; font-size:0.9em; text-decoration:none;">
+        📊 View Admin Dashboard →
+        </a></h1>
+        </p>
+        <p class="subtitle">Browser Fingerprint Tracker - Research System</p>
+
+        <div class="card">
+            <div class="status collecting" id="status">
+                🔍 Collecting fingerprint data...
+            </div>
+
+            <div class="fingerprint-id" id="fingerprintId">
+                Generating fingerprint...
+            </div>
+
+            <button class="btn-primary" id="sendBtn" disabled>
+                📤 Send to Server
+            </button>
+
+            
+        </div>
+            <div class="server-response" id="serverResponse"></div>
+            <div class="loader" id="loader"></div>
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📊 Fingerprint Details</h2>
+            <div class="details" id="details">
+                <!-- Details will be populated by JavaScript -->
+            </div>
+        </div>
+
+            
+    </div>
+
+    <script src="fingerprint.js"></script>
+</body>
+</html>
