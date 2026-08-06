@@ -272,7 +272,7 @@ async function generateHash(data) {
 // Display fingerprint in UI
 function displayFingerprint() {
     document.getElementById('fingerprintId').textContent = fingerprintHash;
-    document.getElementById('status').textContent = '✅ Fingerprint collected successfully';
+    document.getElementById('status').textContent = 'Fingerprint collected successfully';
     document.getElementById('status').className = 'status complete';
 
     const detailsContainer = document.getElementById('details');
