@@ -30,7 +30,7 @@ The companion tracker (`chameleon-tracker/`) hashes 11 collected attributes (can
 
 ## Demo
 
-![Chameleon Demo](demo.gif)
+<video src="assets/chameleon.mp4" width="100%" controls></video>
 
 *Fingerprint hash changing on every reload with Chameleon enabled, versus remaining identical with it disabled.*
 
