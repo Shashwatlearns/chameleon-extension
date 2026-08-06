@@ -358,13 +358,13 @@ document.getElementById('sendBtn').addEventListener('click', async () => {
         
         if (data.isNewVisitor) {
             responseDiv.innerHTML = `
-                <strong>✅ New visitor recorded!</strong><br>
+                <strong>New visitor recorded!</strong><br>
                 First seen: ${new Date(data.firstSeen).toLocaleString()}<br>
                 Visit count: ${data.visitCount}
             `;
         } else {
             responseDiv.innerHTML = `
-                <strong>👋 Welcome back!</strong><br>
+                <strong>Welcome back!</strong><br>
                 First seen: ${new Date(data.firstSeen).toLocaleString()}<br>
                 Last seen: ${new Date(data.lastSeen).toLocaleString()}<br>
                 Visit count: ${data.visitCount}
@@ -375,7 +375,7 @@ document.getElementById('sendBtn').addEventListener('click', async () => {
         responseDiv.className = 'server-response error';
         responseDiv.style.display = 'block';
         responseDiv.innerHTML = `
-            <strong>❌ Error sending to server</strong><br>
+            <strong>Error sending to server</strong><br>
             ${error.message}<br>
             Make sure the server is running at http://localhost:3000
         `;
