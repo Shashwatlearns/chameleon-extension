@@ -1,9 +1,26 @@
 // content.js - Runs in isolated world
-// Its only job is to inject inject.js into the real page world
-// and relay detections to the popup via chrome.runtime messaging
+// Injects inject.js into the real page world using synchronous inline injection
+// and relays detections to the popup via chrome.runtime messaging
 
 (function () {
     'use strict';
+
+    // ── Inject the spoofer into the page's real JS world ─────────────────
+    // Use synchronous XHR + inline script to guarantee it runs before ANY page code
+    try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', chrome.runtime.getURL('inject.js'), false); // synchronous
+        xhr.send();
+        if (xhr.status === 200) {
+            const script = document.createElement('script');
+            script.textContent = xhr.responseText;
+            (document.head || document.documentElement).appendChild(script);
+            script.remove();
+            console.log('[Chameleon] inject.js injected synchronously into page world');
+        }
+    } catch (err) {
+        console.error('[Chameleon] Failed to inject:', err);
+    }
 
     // ── Detection log for this tab ────────────────────────────────────────
     const _detections = [];
@@ -23,7 +40,5 @@
             sendResponse({ detections: _detections });
         }
     });
-
-    console.log('🦎 Chameleon content.js loaded — inject.js injected into page world');
 
 })();
