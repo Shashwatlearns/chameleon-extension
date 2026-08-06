@@ -1,8 +1,11 @@
 // inject.js - Runs in the PAGE's JavaScript world
-// This is what actually intercepts fingerprint.js
+// This is what actually intercepts fingerprinting APIs
 
 (function () {
     'use strict';
+
+    // Signal to the page that Chameleon is active (used by tracker for demo)
+    window.__CHAMELEON_ACTIVE__ = true;
 
     const seed = Math.random();
 
@@ -186,6 +189,6 @@
         }
     } catch (e) {}
 
-    console.log('🦎 Chameleon inject.js active in page world');
+    console.log('[Chameleon] inject.js active — all fingerprinting APIs patched');
 
 })();

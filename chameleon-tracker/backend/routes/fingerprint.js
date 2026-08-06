@@ -31,17 +31,38 @@ const fingerprintSchema = new mongoose.Schema({
 
 const Fingerprint = mongoose.model('Fingerprint', fingerprintSchema);
 
+let memoryStore = [];
+
 // POST /api/fingerprint - Save or update fingerprint
 router.post('/', async (req, res) => {
     try {
         const { id, fingerprint } = req.body;
 
-        // Validate input
         if (!id || !fingerprint) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: id and fingerprint'
             });
+        }
+
+        if (global.mongoConnected === false) {
+            let existing = memoryStore.find(f => f.id === id);
+            if (existing) {
+                existing.lastSeen = new Date();
+                existing.visitCount += 1;
+                existing.fingerprint = fingerprint;
+                return res.status(200).json({
+                    success: true, isNewVisitor: false, message: 'Returning visitor detected',
+                    ...existing
+                });
+            } else {
+                let newRecord = { id, fingerprint, firstSeen: new Date(), lastSeen: new Date(), visitCount: 1 };
+                memoryStore.push(newRecord);
+                return res.status(201).json({
+                    success: true, isNewVisitor: true, message: 'New visitor recorded',
+                    ...newRecord
+                });
+            }
         }
 
         // Check if fingerprint already exists
@@ -105,6 +126,15 @@ router.post('/', async (req, res) => {
 // GET /api/fingerprint/all - Retrieve all fingerprints
 router.get('/all', async (req, res) => {
     try {
+        if (global.mongoConnected === false) {
+            const fingerprints = [...memoryStore].sort((a, b) => b.lastSeen - a.lastSeen);
+            return res.status(200).json({
+                success: true,
+                count: fingerprints.length,
+                data: fingerprints
+            });
+        }
+
         const fingerprints = await Fingerprint.find()
             .select('id firstSeen lastSeen visitCount')
             .sort({ lastSeen: -1 });

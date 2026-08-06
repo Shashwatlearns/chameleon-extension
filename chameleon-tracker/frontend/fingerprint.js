@@ -9,6 +9,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         // Wait 500ms to guarantee the extension has fully injected and patched the APIs
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Check if Chameleon extension is active
+        const chameleonActive = window.__CHAMELEON_ACTIVE__ === true;
+        const statusEl = document.getElementById('status');
+        if (chameleonActive) {
+            statusEl.textContent = '🛡️ Chameleon ACTIVE — fingerprint will be spoofed';
+            statusEl.className = 'status complete';
+        } else {
+            statusEl.textContent = '⚠️ Chameleon NOT detected — real fingerprint exposed';
+            statusEl.className = 'status collecting';
+        }
+
         await collectFingerprint();
         displayFingerprint();
         document.getElementById('sendBtn').disabled = false;

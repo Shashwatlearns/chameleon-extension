@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chameleon - Browser Fingerprint Auditor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Detects and disrupts browser fingerprinting by intercepting API calls and returning fake human-plausible data",
   "permissions": [
     "activeTab",
@@ -11,6 +11,9 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -30,13 +33,12 @@
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true
-    },
+    }
+  ],
+  "web_accessible_resources": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["inject.js"],
-      "run_at": "document_start",
-      "all_frames": true,
-      "world": "MAIN"
+      "resources": ["inject.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

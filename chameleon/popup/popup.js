@@ -1,21 +1,56 @@
-// Chameleon - Popup Script
-// Matches the current state: Canvas hooked, everything else pending
+// Chameleon - Popup Script with Toggle Support
 
 (function () {
     'use strict';
 
-    // ── DOM references (matching popup.html exactly) ──────────────────────
-    const statusIndicator = document.querySelector('.status-indicator');
-    const statusStrong    = document.querySelector('.status-text strong');
-    const statusPara      = document.querySelector('.status-text p');
-    const blockedValue    = document.querySelectorAll('.stat-value')[1]; // second stat
+    const statusDot    = document.getElementById('statusDot');
+    const statusTitle  = document.getElementById('statusTitle');
+    const statusDesc   = document.getElementById('statusDesc');
+    const toggleSwitch = document.getElementById('toggleSwitch');
+    const blockedValue = document.getElementById('blockedCount');
+    const footerStatus = document.getElementById('footerStatus');
 
-    // Running count of canvas interceptions reported by content.js
     let blockedCount = 0;
 
-    // ── Listen for messages from content.js ───────────────────────────────
-    // content.js will send these once messaging is wired up.
-    // The listener is ready now so nothing breaks when that step is added.
+    // ── Update UI based on enabled state ─────────────────────────────────
+    function updateUI(enabled) {
+        if (enabled) {
+            statusDot.className = 'status-indicator active';
+            statusTitle.textContent = 'Protection Active';
+            statusDesc.textContent = 'Fingerprinting APIs are being spoofed';
+            footerStatus.textContent = 'Active';
+            footerStatus.className = 'status-ok';
+            toggleSwitch.checked = true;
+        } else {
+            statusDot.className = 'status-indicator';
+            statusTitle.textContent = 'Protection Disabled';
+            statusDesc.textContent = 'Fingerprinting APIs are exposed';
+            footerStatus.textContent = 'Disabled';
+            footerStatus.className = 'status-off';
+            toggleSwitch.checked = false;
+        }
+    }
+
+    // ── Load current state ───────────────────────────────────────────────
+    chrome.storage.local.get('enabled', (result) => {
+        const enabled = result.enabled !== false; // default true
+        updateUI(enabled);
+    });
+
+    // ── Toggle handler ───────────────────────────────────────────────────
+    toggleSwitch.addEventListener('change', () => {
+        const enabled = toggleSwitch.checked;
+        chrome.runtime.sendMessage(
+            { type: 'CHAMELEON_TOGGLE', enabled: enabled },
+            (response) => {
+                if (response && response.success) {
+                    updateUI(enabled);
+                }
+            }
+        );
+    });
+
+    // ── Listen for detection events from content.js ──────────────────────
     chrome.runtime.onMessage.addListener((message) => {
         try {
             if (message.type === 'CHAMELEON_DETECTION') {
@@ -29,19 +64,16 @@
         }
     });
 
-    // ── Ask content.js for any detections already logged ─────────────────
-    // Works once content.js implements CHAMELEON_GET_STATE response.
-    // Silently does nothing if content.js is not ready yet.
+    // ── Ask content.js for detections already logged ─────────────────────
     function requestState() {
         try {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 if (!tabs || tabs.length === 0) return;
-
                 chrome.tabs.sendMessage(
                     tabs[0].id,
                     { type: 'CHAMELEON_GET_STATE' },
                     (response) => {
-                        if (chrome.runtime.lastError) return; // not injected yet — fine
+                        if (chrome.runtime.lastError) return;
                         if (response && Array.isArray(response.detections)) {
                             blockedCount = response.detections.length;
                             if (blockedValue) {
@@ -56,13 +88,6 @@
         }
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-        requestState();
-    });
-
-    // DOMContentLoaded may already have fired (popup scripts load late),
-    // so call directly as well.
     requestState();
 
 })();
