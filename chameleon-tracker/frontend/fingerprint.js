@@ -14,10 +14,10 @@ window.addEventListener('DOMContentLoaded', async () => {
         const chameleonActive = window.__CHAMELEON_ACTIVE__ === true;
         const statusEl = document.getElementById('status');
         if (chameleonActive) {
-            statusEl.textContent = '🛡️ Chameleon ACTIVE — fingerprint will be spoofed';
+            statusEl.textContent = 'Chameleon Active — fingerprint will be spoofed';
             statusEl.className = 'status complete';
         } else {
-            statusEl.textContent = '⚠️ Chameleon NOT detected — real fingerprint exposed';
+            statusEl.textContent = 'Chameleon Not Detected — real fingerprint exposed';
             statusEl.className = 'status collecting';
         }
 
@@ -26,7 +26,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('sendBtn').disabled = false;
     } catch (error) {
         console.error('Error collecting fingerprint:', error);
-        document.getElementById('status').textContent = '❌ Error collecting fingerprint';
+        document.getElementById('status').textContent = 'Error collecting fingerprint';
         document.getElementById('status').className = 'status error';
     }
 });
