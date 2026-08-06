@@ -1,51 +1,58 @@
-# 🦎 Chameleon - Browser Fingerprint Auditor & Tracker
+# Chameleon
 
-Chameleon is a comprehensive project designed to demonstrate both the mechanics of browser fingerprinting and the techniques used to defend against it. It consists of two main components:
-1. **Chameleon Tracker**: A Node.js/Express and MongoDB backend web application that acts as a tracking server, gathering device attributes to create a unique browser fingerprint.
-2. **Chameleon Extension**: A Chrome extension that intercepts and spoofs fingerprinting APIs in real-time, protecting the user by injecting noise into the fingerprint.
+A Chrome extension that intercepts browser fingerprinting techniques and feeds trackers fake, human-plausible data — making your browser un-trackable across sessions without breaking how sites actually function.
 
-## 🚀 Features
+Paired with `chameleon-tracker`, a companion tracking web app built to demonstrate the exact fingerprinting techniques Chameleon defends against — showing both sides of the web tracking problem.
 
-* **Fingerprint Collection**: Collects data from Canvas, WebGL, AudioContext, Fonts, Screen specs, Navigator, and more.
-* **API Spoofing**: Intercepts fingerprinting attempts by adding noise to Canvas/Audio data and returning fake WebGL/Navigator details.
-* **Admin Dashboard**: A tracker interface to visualize collected fingerprints, showing how Chameleon protects privacy.
-* **Manifest V3**: The Chrome extension is built using the latest Manifest V3 architecture.
+## The Problem
 
-## 📁 Project Structure
+Cookie-based tracking is easy to defeat: clear your cookies or use private browsing mode, and the tracker loses your identity. **Browser fingerprinting** solves that problem for advertisers by collecting device-level attributes — canvas rendering output, GPU specifications, audio processing quirks, installed fonts, CPU core count — that remain stable across sessions and cannot be cleared like a cookie. It is passive, silent, and nearly impossible to opt out of through standard privacy settings.
 
-* `chameleon/`: The Chrome Extension source code.
-  * `content.js`: Runs in isolated world, injects `inject.js`.
-  * `inject.js`: Runs in page world, monkey-patches fingerprinting APIs.
-  * `popup/`: The extension popup dashboard.
-* `chameleon-tracker/`: The backend tracking server.
-  * `backend/`: Node.js, Express, and MongoDB REST API routes.
-  * `frontend/`: The tracking demo page and admin dashboard.
+Chameleon intercepts these fingerprinting calls before they reach the page and returns spoofed values instead. The visual behavior remains identical, but the underlying fingerprint changes on every load.
 
-## 🛠️ Installation & Setup
+## How It Works
 
-### 1. Setting up the Tracker Server
-You will need [Node.js](https://nodejs.org/) and [MongoDB](https://www.mongodb.com/) installed on your machine.
+Chrome extensions run in an **isolated JavaScript world** — they can read the page's DOM but cannot overwrite native functions the page's own scripts use. Chameleon circumvents this with a two-script injection pattern:
 
-```bash
-cd chameleon-tracker
-npm install
-npm start
-```
-Make sure MongoDB is running locally at `mongodb://localhost:27017`. Once started, the tracker will be available at `http://localhost:3000`.
+- **`content.js`** (isolated world) — executes on page load and injects `inject.js` into the page via a `<script>` tag so it executes in the page's real JavaScript context.
+- **`inject.js`** (page world) — monkey-patches the native browser APIs trackers rely on:
 
-### 2. Loading the Chrome Extension
-1. Open Google Chrome and go to `chrome://extensions/`.
-2. Enable **Developer mode** (toggle in the top right).
-3. Click **Load unpacked** and select the `chameleon` folder from this repository.
-4. Pin the extension to your toolbar to see the blocked attempts in real-time.
+| Vector | Technique |
+|---|---|
+| **Canvas fingerprinting** | Overrides `HTMLCanvasElement.prototype.toDataURL` — pulls pixel data via `getImageData`, adds ±1 random noise to RGB channels, and writes it back. Visually identical, hash completely different. |
+| **WebGL fingerprinting** | Overrides `WebGLRenderingContext.prototype.getParameter` — returns a randomized fake GPU vendor/renderer (e.g. reports NVIDIA instead of your actual hardware) instead of `UNMASKED_VENDOR_WEBGL`/`UNMASKED_RENDERER_WEBGL`. |
+| **Audio fingerprinting** | Patches `createScriptProcessor` on the Web Audio API — injects microscopic random offsets into output buffer samples, disrupting the DSP-based signature. |
+| **Navigator spoofing** | Uses `Object.defineProperty` to override read-only getters like `navigator.hardwareConcurrency`, `navigator.deviceMemory`, and `navigator.platform` (these cannot be reassigned directly since they are native getters). |
 
-## 🧠 How it Works
+Because `inject.js` runs in the page world, it cannot communicate with the extension directly. It dispatches a `CustomEvent` (`chameleon_detection`), which `content.js` listens for and forwards to the popup via `chrome.runtime.sendMessage`.
 
-* **Tracker**: When you visit the tracker page, it executes a series of tests to query your hardware capabilities (like drawing a hidden canvas and measuring the exact pixels). It then hashes these results into a unique SHA-256 identifier and saves it to MongoDB.
-* **Extension**: The extension injects a script before the page loads. When the page tries to query your canvas or audio hardware, the extension intercepts the call and adds a tiny, randomized mathematical noise to the output. This causes the generated hash to change on every page load, making tracking impossible.
+The companion tracker (`chameleon-tracker/`) hashes 11 collected attributes (canvas, WebGL, audio, fonts, screen, navigator, timezone, plugins, etc.) with SHA-256 to generate a visitor ID, and stores visits in MongoDB. With Chameleon active, that hash changes every page load, ensuring the tracker records a "new visitor" every time instead of recognizing a returning user.
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome!
+## Demo
 
-## 📜 License
-This project is licensed under the MIT License.
+![Chameleon Demo](demo.gif)
+
+*Fingerprint hash changing on every reload with Chameleon enabled, versus remaining identical with it disabled.*
+
+## Tech Stack
+
+* **Extension:** JavaScript, Chrome Extension Manifest V3, Chrome Extension APIs (content scripts, page-world injection)
+* **Tracker application:** Node.js, Express, MongoDB, Mongoose, Web Crypto API (SHA-256)
+
+## Installation
+
+1. Clone this repository.
+2. Follow the specific setup instructions in the tracker and extension directories.
+
+## Technical Challenges
+
+- **Isolated world limitations** — Chrome extensions cannot directly overwrite page-context prototypes, which required the two-script injection pattern (`content.js` → `inject.js`) using `CustomEvent` messaging to bridge the two contexts.
+- **Spoofing without breaking sites** — The injected noise had to be small enough (±1 pixel RGB, ~0.00005 audio offset) to remain visually and functionally invisible while successfully altering the underlying hash.
+- **Detectability of the spoofing itself** — Sophisticated trackers can invoke `.toString()` on a patched function to determine if it is native code or a JavaScript wrapper, or cross-check spoofed values for consistency (e.g., an NVIDIA GPU string paired with an iPhone user agent is an obvious anomaly).
+
+## Future Improvements
+
+- Proxy `Function.prototype.toString` so patched methods still report as native code under inspection.
+- Implement consistent device profiles (e.g., "spoof as Windows Desktop") so all spoofed attributes match each other rather than being randomized independently.
+- Introduce per-site toggle controls and a canvas-inspection dashboard displaying what a site attempted to capture.
+- Add a local in-memory fallback for the tracker application when MongoDB is unavailable.
