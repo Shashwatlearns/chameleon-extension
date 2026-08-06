@@ -5,12 +5,6 @@
 (function () {
     'use strict';
 
-    // ── Inject the spoofer into the page's real JS world ─────────────────
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('inject.js');
-    script.onload = function () { this.remove(); };
-    (document.head || document.documentElement).appendChild(script);
-
     // ── Detection log for this tab ────────────────────────────────────────
     const _detections = [];
 
