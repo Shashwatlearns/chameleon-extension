@@ -7,6 +7,8 @@ let fingerprintHash = '';
 // Collect all fingerprint data on page load
 window.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Wait 500ms to guarantee the extension has fully injected and patched the APIs
+        await new Promise(resolve => setTimeout(resolve, 500));
         await collectFingerprint();
         displayFingerprint();
         document.getElementById('sendBtn').disabled = false;
